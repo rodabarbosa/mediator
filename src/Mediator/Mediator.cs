@@ -1,9 +1,13 @@
+using System.Collections.Concurrent;
+using System.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Mediator;
 
 public class Mediator : IMediator
 {
+    private static readonly ConcurrentDictionary<Type, MethodInfo> _methodCache = new();
+
     private readonly IServiceProvider _serviceProvider;
 
     public Mediator(IServiceProvider serviceProvider)
@@ -28,7 +32,7 @@ public class Mediator : IMediator
             throw new InvalidOperationException(
                 $"No handler found for request type '{requestType.Name}'.");
 
-        var method = handlerType.GetMethod(nameof(IRequestHandler<IRequest<TResponse>, TResponse>.Handle))!;
+        var method = _methodCache.GetOrAdd(handlerType, t => t.GetMethod("Handle")!);
         return await (Task<TResponse>)method.Invoke(handlers[0], [request, cancellationToken])!;
     }
 
@@ -40,7 +44,7 @@ public class Mediator : IMediator
         var handlerType = typeof(INotificationHandler<>).MakeGenericType(notificationType);
 
         var handlers = _serviceProvider.GetServices(handlerType);
-        var method = handlerType.GetMethod(nameof(INotificationHandler<INotification>.Handle))!;
+        var method = _methodCache.GetOrAdd(handlerType, t => t.GetMethod("Handle")!);
 
         foreach (var handler in handlers)
         {

@@ -222,7 +222,7 @@ public class NotificationHandlerTests
 public class ServiceCollectionExtensionsTests
 {
     [Fact]
-    public async Task AddMediator_RegistersIMediator()
+    public void AddMediator_RegistersIMediator()
     {
         var services = new ServiceCollection();
         services.AddMediator(typeof(PingHandler).Assembly);
