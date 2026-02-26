@@ -4,17 +4,35 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Mediator;
 
+/// <summary>
+/// Default implementation of <see cref="IMediator"/> that resolves handlers from an
+/// <see cref="IServiceProvider"/> and dispatches requests and notifications accordingly.
+/// </summary>
 public class Mediator : IMediator
 {
+    /// <summary>
+    /// Cache that maps a handler interface type to its resolved <see cref="MethodInfo"/> for
+    /// the <c>Handle</c> method, avoiding repeated reflection lookups after the first call.
+    /// </summary>
     private static readonly ConcurrentDictionary<Type, MethodInfo> _methodCache = new();
 
+    /// <summary>
+    /// The service provider used to resolve handler instances at runtime.
+    /// </summary>
     private readonly IServiceProvider _serviceProvider;
 
+    /// <summary>
+    /// Initializes a new instance of <see cref="Mediator"/> with the given service provider.
+    /// </summary>
+    /// <param name="serviceProvider">
+    /// The <see cref="IServiceProvider"/> from which request and notification handlers are resolved.
+    /// </param>
     public Mediator(IServiceProvider serviceProvider)
     {
         _serviceProvider = serviceProvider;
     }
 
+    /// <inheritdoc/>
     public async Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -36,6 +54,7 @@ public class Mediator : IMediator
         return await (Task<TResponse>)method.Invoke(handlers[0], [request, cancellationToken])!;
     }
 
+    /// <inheritdoc/>
     public async Task Send(INotification notification, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(notification);
